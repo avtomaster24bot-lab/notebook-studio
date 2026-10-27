@@ -32,15 +32,18 @@ export function providersText() {
 // Бесплатный режим: браузер обращается к Pollinations напрямую (квота считается по IP пользователя).
 async function pollinationsDirect(messages, opts) {
   let err;
-  for (let i = 0; i < 3; i++) {
+  const waits = [2000, 8000, 20000, 30000];
+  for (let i = 0; i < waits.length; i++) {
+    let st = 0;
     try {
       const r = await fetch("https://text.pollinations.ai/openai", { method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(150000),
-        body: JSON.stringify({ model: "openai-fast", messages, temperature: opts.temperature ?? 0.6, max_tokens: opts.max_tokens ?? 2500, seed: Math.floor(Math.random() * 1e6), ...(opts.json ? { response_format: { type: "json_object" } } : {}) }) });
-      if (!r.ok) throw new Error("Pollinations " + r.status);
+        body: JSON.stringify({ model: "openai-fast", reasoning_effort: "low", messages, temperature: opts.temperature ?? 0.6, max_tokens: opts.max_tokens ?? 2500, seed: Math.floor(Math.random() * 1e6), ...(opts.json ? { response_format: { type: "json_object" } } : {}) }) });
+      st = r.status;
+      if (!r.ok) throw new Error(r.status === 402 || r.status === 429 ? "бесплатный лимит Pollinations временно исчерпан (" + r.status + ")" : "Pollinations " + r.status);
       const d = await r.json(); const text = d?.choices?.[0]?.message?.content;
       if (text && text.trim()) return { text, provider: `Pollinations (${d.model || "openai-fast"}, бесплатно)` };
       throw new Error("пустой ответ");
-    } catch (e) { err = e; await new Promise((res) => setTimeout(res, 2000 * (i + 1))); }
+    } catch (e) { err = e; if (i < waits.length - 1) await new Promise((res) => setTimeout(res, st === 402 || st === 429 ? waits[i] + 5000 : waits[i])); }
   }
   throw err;
 }
@@ -57,7 +60,7 @@ export function parseJSON(text) {
   if (a >= 0 && b > a) { const s = t.slice(a, b + 1); try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/,\s*([}\]])/g, "$1")); } }
   throw new Error("Модель вернула не JSON");
 }
-export async function llmJSON(messages, opts = {}, tries = 3) {
+export async function llmJSON(messages, opts = {}, tries = 2) {
   let last;
   for (let i = 0; i < tries; i++) {
     try { const r = await llm(messages, { ...opts, json: true }); return { data: parseJSON(r.text), provider: r.provider }; }

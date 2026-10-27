@@ -20,7 +20,7 @@ ${context ? `Материалы (используй факты отсюда):\n"
 - label — подпись на экран для сцены, 1–4 слова (для сцен-пунктов начинай с номера: «01 Скрип»).
 Формат JSON:
 {"title":"название ролика","hook":"заголовок на экран, до 7 слов","scenes":[{"voice":"текст озвучки","label":"подпись","image_prompt":"...","stock_query":"..."}],"caption":"текст поста под видео, 2–4 предложения","hashtags":["#тег1","#тег2","#тег3","#тег4","#тег5"],"music":"energetic|inspiring|cinematic|lofi|calm|tech"}`;
-  const { data, provider } = await llmJSON([{ role: "system", content: sys }, { role: "user", content: user }], { temperature: 0.8, max_tokens: 3500 });
+  const { data, provider } = await llmJSON([{ role: "system", content: sys }, { role: "user", content: user }], { temperature: 0.8, max_tokens: 2800 });
   const sc = (data.scenes || []).filter((s) => s && String(s.voice || "").trim()).map((s) => ({
     voice: String(s.voice).replace(/[#*_]/g, "").trim(), label: String(s.label || "").slice(0, 40),
     image_prompt: String(s.image_prompt || s.voice), stock_query: String(s.stock_query || topic),

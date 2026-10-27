@@ -1,5 +1,5 @@
 // Завод рилсов: сценарий (LLM) → картинки (ИИ/сток) → озвучка (Microsoft Neural) → музыка → субтитры → MP4 (WebCodecs).
-import { llmJSON, tts, genImage, stock, fetchBlob, settings } from "./api.js";
+import { llmJSON, tts, genImage, stock, fetchBlob, settings, health } from "./api.js";
 import { generateMusic, MOODS } from "./music.js";
 
 const W = 1080, H = 1920, FPS = 30;
@@ -14,18 +14,24 @@ ${context ? `Материалы (используй факты отсюда):\n"
 - Сцена 1 — хук: сильная первая фраза (вопрос, интрига или неожиданный факт), до 12 слов.
 - Каждая следующая сцена — один конкретный пункт/мысль, 1–2 коротких предложения, разговорный язык.
 - Последняя сцена — вывод и призыв (подписаться/сохранить/написать в комментариях).
-- Числа пиши словами, если они произносятся («пять», а не «5»). Без эмодзи и хэштегов в озвучке.
+- Числа пиши словами, если они произносятся («пять», а не «5»). Без эмодзи и хэштегов в озвучке. Грамотный, естественный русский язык — перечитай каждую фразу.
 - image_prompt — подробный промпт на АНГЛИЙСКОМ для фотореалистичной вертикальной картинки к этой сцене: объект, окружение, свет, ракурс, стиль (например "cinematic photo, 35mm, shallow depth of field"). Без текста на картинке.
 - stock_query — 2–4 английских слова для поиска стокового фото.
 - label — подпись на экран для сцены, 1–4 слова (для сцен-пунктов начинай с номера: «01 Скрип»).
 Формат JSON:
 {"title":"название ролика","hook":"заголовок на экран, до 7 слов","scenes":[{"voice":"текст озвучки","label":"подпись","image_prompt":"...","stock_query":"..."}],"caption":"текст поста под видео, 2–4 предложения","hashtags":["#тег1","#тег2","#тег3","#тег4","#тег5"],"music":"energetic|inspiring|cinematic|lofi|calm|tech"}`;
-  const { data, provider } = await llmJSON([{ role: "system", content: sys }, { role: "user", content: user }], { temperature: 0.8, max_tokens: 2800 });
+  const { data, provider } = await llmJSON([{ role: "system", content: sys }, { role: "user", content: user }], { temperature: 0.7, max_tokens: 2800 });
   const sc = (data.scenes || []).filter((s) => s && String(s.voice || "").trim()).map((s) => ({
     voice: String(s.voice).replace(/[#*_]/g, "").trim(), label: String(s.label || "").slice(0, 40),
     image_prompt: String(s.image_prompt || s.voice), stock_query: String(s.stock_query || topic),
   }));
   if (sc.length < 2) throw new Error("Модель не написала сцены — попробуйте ещё раз");
+  // Редактура: второй проход исправляет корявые фразы и ошибки в озвучке.
+  try {
+    const ed = await llmJSON([{ role: "system", content: "Ты — строгий литературный редактор русского языка. Отвечай только JSON." }, { role: "user", content: `Исправь в репликах озвучки рилса грамматические, смысловые и стилистические ошибки, сделай фразы естественными для устной речи. Не меняй смысл, факты, порядок и примерную длину. Числа — словами. Верни {"lines":["..."]} ровно из ${sc.length} строк.\n${JSON.stringify(sc.map((x) => x.voice))}` }], { temperature: 0.2, max_tokens: 1800 }, 1);
+    const lines = ed.data.lines;
+    if (Array.isArray(lines) && lines.length === sc.length) lines.forEach((l, i) => { const t = String(l || "").trim(); if (t.length > sc[i].voice.length * 0.5 && t.length < sc[i].voice.length * 1.6) sc[i].voice = t; });
+  } catch (e) { console.warn("редактура пропущена", e); }
   return { title: data.title || topic, hook: String(data.hook || topic).slice(0, 70), scenes: sc, caption: data.caption || "", hashtags: data.hashtags || [], music: MOODS[data.music] ? data.music : "inspiring", provider };
 }
 
@@ -73,7 +79,8 @@ export async function buildAssets(script, { mode = "ai", musicMood, musicFile, v
   });
   log(mode === "stock" ? "Подбор стоковых фото…" : "Генерация картинок ИИ…");
   const used = new Set();
-  const imgs = await pool(script.scenes, 2, async (s, i) => {
+  const free = !(settings.agnesKey || settings.pollinationsKey || (health && health.image !== "pollinations-flux"));
+  const imgs = await pool(script.scenes, mode === "ai" && free ? 1 : 3, async (s, i) => {
     const r = await sceneImage(s, mode, used, log);
     progress(++done / totalSteps);
     log(`  картинка ${i + 1}: ${r ? r.provider : "нет — будет градиент"}`);
@@ -210,7 +217,7 @@ export async function renderMP4(A, { onProgress = () => {}, canvas } = {}) {
   // подбираем кодеки
   let vcfg = null;
   for (const codec of ["avc1.640028", "avc1.4d0028", "avc1.42003e", "avc1.640033"]) for (const hw of ["no-preference", "prefer-software"]) {
-    if (vcfg) break; const c = { codec, width: W, height: H, bitrate: 9_000_000, framerate: FPS, hardwareAcceleration: hw, avc: { format: "avc" } };
+    if (vcfg) break; const c = { codec, width: W, height: H, bitrate: 6_000_000, framerate: FPS, hardwareAcceleration: hw, avc: { format: "avc" } };
     try { if ((await VideoEncoder.isConfigSupported(c)).supported) vcfg = c; } catch { /* next */ }
   }
   if (!vcfg) return await renderRealtime(A, { onProgress, canvas });

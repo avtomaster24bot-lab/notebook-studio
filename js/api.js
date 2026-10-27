@@ -91,6 +91,7 @@ export async function genImage(prompt, { width = 1080, height = 1920, seed = Mat
       const ct = r.headers.get("content-type") || "";
       if (r.ok && ct.startsWith("image/")) return { blob: await r.blob(), provider: "Pollinations (бесплатно)" };
       err = new Error("Pollinations " + r.status);
+      if (r.status === 402 || r.status === 429) { await new Promise((res) => setTimeout(res, 8000 * (i + 1))); continue; }
     } catch (e) { err = e; }
     await new Promise((res) => setTimeout(res, 3000 * (i + 1)));
   }

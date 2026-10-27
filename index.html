@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notebook Studio — блокнот с ИИ и завод рилсов</title>
+<meta name="description" content="Браузерный аналог NotebookLM: источники, чат с цитатами, конспекты, аудиопересказ, картинки, музыка и вертикальные рилсы на любую тему.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Montserrat:wght@700;800;900&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2319e3b1'/><text x='16' y='22' font-size='16' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%2304120d'>NS</text></svg>">
+</head>
+<body>
+<header class="top">
+  <div class="logo"><i></i><span>Notebook Studio</span></div>
+  <select id="nbSel" title="Блокнот"></select>
+  <button class="btn sm" id="nbNew" title="Новый блокнот">＋ Блокнот</button>
+  <button class="btn sm ghost" id="nbRen" title="Переименовать">✎</button>
+  <button class="btn sm ghost" id="nbDel" title="Удалить блокнот">🗑</button>
+  <div class="sp"></div>
+  <span class="badge" id="provBadge">подключение…</span>
+  <button class="btn sm" id="setBtn">⚙ Настройки</button>
+</header>
+<nav class="mtabs" id="mtabs"><button class="btn sm on" data-p="pSrc">Источники</button><button class="btn sm" data-p="pChat">Чат</button><button class="btn sm" data-p="pStudio">Студия</button></nav>
+<main class="grid">
+  <section class="panel mon" id="pSrc">
+    <div class="ph">Источники <button class="btn sm pri" id="addSrc">＋ Добавить</button></div>
+    <div class="pb" id="srcList"></div>
+  </section>
+  <section class="panel" id="pChat">
+    <div class="ph"><span>Чат с источниками</span><span><button class="btn sm ghost" id="chatClear" title="Очистить чат">Очистить</button></span></div>
+    <div class="pb"><div class="chat" id="chat"></div></div>
+    <div class="chips" id="sugg"></div>
+    <div class="composer"><textarea id="q" placeholder="Спросите что-нибудь об источниках… (Enter — отправить)"></textarea><button class="btn pri" id="send">➤</button></div>
+  </section>
+  <section class="panel" id="pStudio">
+    <div class="ph">Студия</div>
+    <div class="pb">
+      <div class="tiles">
+        <button class="tile big" data-act="reel"><b>🎬 Рилс 9:16 на любую тему</b><span>Сценарий → озвучка → картинки → музыка → субтитры → MP4</span></button>
+        <button class="tile" data-act="podcast"><b>🎧 Аудиопересказ</b><span>подкаст на два голоса</span></button>
+        <button class="tile" data-act="summary"><b>📝 Краткий обзор</b><span>главное из источников</span></button>
+        <button class="tile" data-act="guide"><b>📚 Учебное пособие</b><span>вопросы, термины, тест</span></button>
+        <button class="tile" data-act="faq"><b>❓ FAQ</b><span>частые вопросы</span></button>
+        <button class="tile" data-act="brief"><b>📄 Брифинг</b><span>документ для руководителя</span></button>
+        <button class="tile" data-act="timeline"><b>🕒 Хронология</b><span>события по порядку</span></button>
+        <button class="tile" data-act="post"><b>✍️ Пост / текст</b><span>Instagram, Telegram, статья</span></button>
+        <button class="tile" data-act="image"><b>🖼 Картинки</b><span>нарисовать ИИ или найти фото</span></button>
+        <button class="tile" data-act="music"><b>🎵 Музыка</b><span>фоновый трек без АП</span></button>
+      </div>
+      <div class="sec">Сохранённое</div>
+      <div id="notes"></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal"><div class="dlg"><div class="ph"><span id="mTitle"></span><button class="btn sm ghost" id="mClose">✕</button></div><div class="pb" id="mBody"></div><div class="ft" id="mFoot"></div></div></div>
+<div class="pop" id="pop"></div>
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
